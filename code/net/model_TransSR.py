@@ -59,6 +59,11 @@ class TVSRN(nn.Module):
         ######################## MAE MToken ########################
         self.c = E_num_out_ch
         self.out_z = (opt.c_z - 1) * opt.ratio + 1
+        ## if not multiple of multiple of window padding for cyclic shift in STL, add padding
+        self.actual_length = self.out_z
+        if self.out_z % opt.TD_Tw != 0:
+            end_padding = opt.TD_Tw - self.out_z % opt.TD_Tw
+            self.out_z += end_padding
         self.x_patch_mask = torch.nn.Parameter(torch.zeros(self.out_z - opt.c_z, self.c, opt.c_y, opt.c_x)).cuda()
 
         if opt.T_pos == True:
@@ -75,7 +80,9 @@ class TVSRN(nn.Module):
                 re_list.append(vis_list.pop(0))
             else:
                 re_list.append(mask_list.pop(0))
-
+        ## add padding to the end of the sequence
+        if len(mask_list) > 0:
+            re_list.extend(mask_list)
         self.slice_sequence = torch.tensor(re_list)
         # endregion
 
@@ -169,4 +176,5 @@ class TVSRN(nn.Module):
         trans_output = trans_output.reshape(1, self.c, -1, opt.c_y, opt.c_x)
         x_out = self.conv_last(self.conv_before_upsample(trans_output))
 
-        return x_out[:, :, 3:-3]
+        # return x_out[:, :, 3:-3]
+        return x_out[:, :, :self.actual_length]

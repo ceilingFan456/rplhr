@@ -141,6 +141,10 @@ def train(**kwargs):
             label = Variable(y.type(torch.FloatTensor).cuda())
 
             y_pre = net(x)
+            # ## clamp the values to the number of frames
+            # frames = label.shape[1]
+            # if y_pre.shape[2] > frames:
+            #     y_pre = y_pre[:, :frames, :, :, :]
             loss = train_criterion(y_pre, label)
 
             # backward
