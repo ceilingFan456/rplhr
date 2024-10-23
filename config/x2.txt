@@ -1,5 +1,9 @@
 ########## spec_config ##########
 
+### new parameters
+scale = 2
+config_path = None
+
 ### default
 # 这里的项必须在参数里写明
 net_idx = None
@@ -14,7 +18,7 @@ loss_f = 'L1'
 
 ### data
 dim = 1
-ratio = 5
+ratio = 2
 
 ### Task based model design
 ### TVSRN

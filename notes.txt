@@ -1,0 +1,7 @@
+python train.py train --path_key kits --gpu_idx 0 --net_idx TVSRN
+
+python3 gen_kits19.py --source_dir /home/simtech/Qiming/kits19 --dest_dir ./kits_data_tiny
+
+python train.py train --path_key kits_x2 --gpu_idx 0 --net_idx TVSRN --config_path /home/simtech/Qiming/RPLHR-CT/config/kits_x2_dict.json
+
+python train.py train --path_key kits_x4 --gpu_idx 0 --net_idx TVSRN --config_path /home/simtech/Qiming/RPLHR-CT/config/kits_x4_dict.json

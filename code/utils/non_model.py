@@ -23,7 +23,7 @@ def read_kwargs(kwargs):
         print('Error: no path key')
         sys.exit()
     else:
-        dict_path = '../config/%s_dict.json' % kwargs['path_key']
+        dict_path = '/home/simtech/Qiming/RPLHR-CT/config/%s_dict.json' % kwargs['path_key']
         with open(dict_path, 'r') as f:
             data_info_dict = json.load(f)
         kwargs['path_img'] = data_info_dict['path_img']

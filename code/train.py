@@ -27,7 +27,9 @@ resource.setrlimit(resource.RLIMIT_NOFILE, (2000, rlimit[1]))
 def train(**kwargs):
     # stage 1
     kwargs, data_info_dict = non_model.read_kwargs(kwargs)
-    opt.load_config('../config/default.txt')
+    # opt.load_config('../config/default.txt')
+    opt.load_config('/home/simtech/Qiming/RPLHR-CT/config/x2.txt')    
+    # opt.load_config(opt.config_path)
     config_dict = opt._spec(kwargs)
 
     ###### random setting ######
@@ -126,15 +128,15 @@ def train(**kwargs):
         tmp_lr = optimizer.__getstate__()['param_groups'][0]['lr']
         print('================= Epoch %s lr=%.6f =================' % (tmp_epoch, tmp_lr))
 
-        if tmp_epoch > epoch_save + opt.gap_epoch or lr_change == 4:
-            break
+        # if tmp_epoch > epoch_save + opt.gap_epoch or lr_change == 4:
+        #     break
 
         # Train
         train_loss = 0
         net = net.train()
 
         for i, return_list in tqdm(enumerate(train_batch)):
-            case_name, x, y = return_list
+            case_name, x, y = return_list ## case_name, img, mask
             x = Variable(x.type(torch.FloatTensor).cuda())
             label = Variable(y.type(torch.FloatTensor).cuda())
 
@@ -159,7 +161,8 @@ def train(**kwargs):
         elif train_loss > 0.012:
             pass_flag = True
             
-        if pass_flag:
+        print(f'pass_flag: {pass_flag}, epoch: {e}, opt.epoch - 1: {opt.epoch - 1}')
+        if pass_flag and e != opt.epoch - 1:
             print('epoch %s, train_loss: %.4f' % (tmp_epoch, train_loss))
             continue
 

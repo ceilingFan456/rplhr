@@ -7,13 +7,14 @@ class train_Dataset:
     def __init__(self, img_list):
         self.img_path = opt.path_img
         self.img_list = img_list
+        self.scale = opt.scale
         return
 
     def __getitem__(self, idx):
         case_name = self.img_list[idx]
 
         # for x and y
-        tmp_img, tmp_mask = in_model.get_train_img(self.img_path, case_name)
+        tmp_img, tmp_mask = in_model.get_train_img(self.img_path, case_name, self.scale)
 
         img = tmp_img[np.newaxis]
         mask = tmp_mask[np.newaxis]
@@ -28,13 +29,14 @@ class val_Dataset:
     def __init__(self, img_list):
         self.img_path = opt.path_img
         self.img_list = img_list
+        self.scale = opt.scale
         return
 
     def __getitem__(self, idx):
         case_name = self.img_list[idx]
 
         # for x and y
-        crop_img, pos_list, tmp_mask = in_model.get_val_img(self.img_path, case_name)
+        crop_img, pos_list, tmp_mask = in_model.get_val_img(self.img_path, case_name, self.scale)
 
         return_list = [case_name, crop_img, tmp_mask, pos_list]
 
@@ -47,13 +49,14 @@ class test_Dataset:
     def __init__(self, img_list):
         self.img_path = opt.path_img
         self.img_list = img_list
+        self.scale = opt.scale
         return
 
     def __getitem__(self, idx):
         case_name = self.img_list[idx]
 
         # for x and y
-        crop_img, pos_list, tmp_mask = in_model.get_test_img(self.img_path, case_name)
+        crop_img, pos_list, tmp_mask = in_model.get_test_img(self.img_path, case_name, self.scale)
 
         return_list = [case_name, crop_img, tmp_mask, pos_list]
 

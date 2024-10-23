@@ -6,7 +6,7 @@ from config import opt
 from builtins import range
 
 ################################## for data ##################################
-def get_train_img(img_path, case_name):
+def get_train_img(img_path, case_name, scale):
     case_mask_path = img_path + 'train/1mm/' + case_name + '.nii.gz'
     tmp_mask = sitk.GetArrayFromImage(sitk.ReadImage(case_mask_path))
 
@@ -23,8 +23,10 @@ def get_train_img(img_path, case_name):
 
     crop_img = tmp_img[z_s:z_e, y_s:y_e, x_s:x_e]
 
-    mask_z_s = z_s * 5 + 3
-    mask_z_e = (z_e - 1) * 5 - 2
+    # mask_z_s = z_s * 5 + 3
+    # mask_z_e = (z_e - 1) * 5 - 2
+    mask_z_s = z_s * scale
+    mask_z_e = (z_e - 1) * scale + 1
 
     crop_mask = tmp_mask[mask_z_s: mask_z_e, y_s:y_e, x_s:x_e]
 
@@ -34,7 +36,7 @@ def get_train_img(img_path, case_name):
 
     return crop_img, crop_mask
 
-def get_val_img(img_path, case_name):
+def get_val_img(img_path, case_name, scale):
     case_mask_path = img_path + 'val/1mm/' + case_name + '.nii.gz'
     tmp_mask = sitk.GetArrayFromImage(sitk.ReadImage(case_mask_path))
     case_img_path = img_path + 'val/5mm/' + case_name + '.nii.gz'
