@@ -32,6 +32,7 @@ class TVSRN(nn.Module):
         ####################### Global config #######################
         img_size = opt.c_y
         mlp_ratio = opt.T_mlp
+        self.scale = opt.scale
 
         ###################### Linear Projection ####################
         self.E_patch = opt.TE_p
@@ -177,4 +178,7 @@ class TVSRN(nn.Module):
         x_out = self.conv_last(self.conv_before_upsample(trans_output))
 
         # return x_out[:, :, 3:-3]
-        return x_out[:, :, :self.actual_length]
+        pad_infront = self.scale // 2 + self.scale % 2
+        pad_behind = self.scale // 2 + 1
+        x_out = x_out[:, :, :self.actual_length] ## remove padding for window size multiple
+        return x_out[:, :, pad_infront:-pad_behind] ## only take middle

@@ -28,8 +28,9 @@ def train(**kwargs):
     # stage 1
     kwargs, data_info_dict = non_model.read_kwargs(kwargs)
     # opt.load_config('../config/default.txt')
-    opt.load_config('/home/simtech/Qiming/RPLHR-CT/config/x2.txt')    
-    # opt.load_config(opt.config_path)
+    # opt.load_config('/home/simtech/Qiming/RPLHR-CT/config/x2.txt')    
+    # print(kwargs)
+    opt.load_config(kwargs['config_path'])
     config_dict = opt._spec(kwargs)
 
     ###### random setting ######
@@ -165,7 +166,7 @@ def train(**kwargs):
         elif train_loss > 0.012:
             pass_flag = True
             
-        print(f'pass_flag: {pass_flag}, epoch: {e}, opt.epoch - 1: {opt.epoch - 1}')
+        # print(f'pass_flag: {pass_flag}, epoch: {e}, opt.epoch - 1: {opt.epoch - 1}')
         if pass_flag and e != opt.epoch - 1:
             print('epoch %s, train_loss: %.4f' % (tmp_epoch, train_loss))
             continue
@@ -198,7 +199,8 @@ def train(**kwargs):
                     y_for_psnr = tmp_y_pre.data.squeeze().cpu().numpy()
 
                     D = y_for_psnr.shape[0]
-                    pos_z_s = 5 * tmp_pos_z + 3
+                    front_padding = opt.scale // 2 + opt.scale % 2
+                    pos_z_s = opt.scale * tmp_pos_z + front_padding
                     pos_y_s = tmp_pos_y
                     pos_x_s = tmp_pos_x
 
@@ -206,7 +208,9 @@ def train(**kwargs):
 
                 del tmp_y_pre, im
 
-                psnr = non_model.cal_psnr(y_pre[5:-5], y[5:-5])
+                front_padding = opt.scale // 2 + opt.scale % 2
+                back_padding = opt.scale // 2 + 1
+                psnr = non_model.cal_psnr(y_pre[front_padding:-back_padding], y[front_padding:-back_padding])
                 psnr_list.append(psnr)
 
         torch.cuda.empty_cache()

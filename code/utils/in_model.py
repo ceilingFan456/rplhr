@@ -28,6 +28,10 @@ def get_train_img(img_path, case_name, scale):
     mask_z_s = z_s * scale
     mask_z_e = (z_e - 1) * scale + 1
 
+    ## only take the middle part. 
+    mask_z_s += scale // 2 + scale % 2
+    mask_z_e -= scale // 2 + 1
+
     crop_mask = tmp_mask[mask_z_s: mask_z_e, y_s:y_e, x_s:x_e]
 
     if opt.mirror and np.random.uniform() <= 0.3:
@@ -51,7 +55,7 @@ def get_val_img(img_path, case_name, scale):
     z_split = []
     while z_s + opt.vc_z < z:
         z_split.append(z_s)
-        z_s += (opt.vc_z - 2)
+        z_s += (opt.vc_z - 2) ## the 2 here depends on c_z
 
     if z - opt.vc_z > z_split[-1]:
         z_split.append(z - opt.vc_z)
