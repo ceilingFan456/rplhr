@@ -37,6 +37,9 @@ def get_train_img(img_path, case_name, scale):
     if opt.mirror and np.random.uniform() <= 0.3:
         crop_img = crop_img[:, :, ::-1].copy()
         crop_mask = crop_mask[:, :, ::-1].copy()
+    
+    ## downsample the img in xy-direction 
+    crop_img = crop_img[:, ::scale, ::scale]
 
     return crop_img, crop_mask
 
@@ -78,6 +81,8 @@ def get_val_img(img_path, case_name, scale):
     crop_img = np.array(crop_img)
     patch_num, HW_num, D, H, W = crop_img.shape
     crop_img = crop_img.reshape(patch_num * HW_num, D, H, W)
+    ## downsample in xy-direction
+    crop_img = crop_img[:, ::scale, ::scale]
 
     for z_s in z_split:
         for y_s in y_split:
@@ -123,6 +128,8 @@ def get_test_img(img_path, case_name, scale):
     crop_img = np.array(crop_img)
     patch_num, HW_num, D, H, W = crop_img.shape
     crop_img = crop_img.reshape(patch_num * HW_num, D, H, W)
+    ## downsaple in xy-direction 
+    crop_img = crop_img[:, ::scale, ::scale]
 
     for z_s in z_split:
         for y_s in y_split:

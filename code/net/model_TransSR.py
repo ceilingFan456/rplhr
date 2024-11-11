@@ -30,7 +30,7 @@ class TVSRN(nn.Module):
         super(TVSRN, self).__init__()
 
         ####################### Global config #######################
-        img_size = opt.c_y
+        img_size = opt.c_y // opt.scale
         # img_size = (opt.c_x, opt.c_y)
         mlp_ratio = opt.T_mlp
         self.scale = opt.scale
@@ -66,7 +66,7 @@ class TVSRN(nn.Module):
         if self.out_z % opt.TD_Tw != 0:
             end_padding = opt.TD_Tw - self.out_z % opt.TD_Tw
             self.out_z += end_padding
-        self.x_patch_mask = torch.nn.Parameter(torch.zeros(self.out_z - opt.c_z, self.c, opt.c_y, opt.c_x)).cuda()
+        self.x_patch_mask = torch.nn.Parameter(torch.zeros(self.out_z - opt.c_z, self.c, opt.c_y//self.scale, opt.c_x//self.scale)).cuda()
 
         if opt.T_pos == True:
             self.positions_z = positionalencoding1d(self.c, self.out_z, 1).cuda()
@@ -88,23 +88,46 @@ class TVSRN(nn.Module):
         self.slice_sequence = torch.tensor(re_list)
         # endregion
 
+        ## region
+        ############################ 3D padding #############################
         ## increase the token to 3D for the decoder
         ## y direction
-        # self.a_path_mask = torch.nn.Parameter(torch.zeros(self.out_z, self.c, opt.c_y*self.scale, opt.c_x)).cuda()
-        # slice_list = list(range(self.scale*opt.c_y))
-        # vis_list = slice_list[:opt.c_z]
-        # mask_list = slice_list[opt.c_z:]
-        # re_list = []
+        self.a_path_mask = torch.nn.Parameter(torch.zeros(self.out_z, self.c, opt.c_y, opt.c_x//self.scale)).cuda()
+        slice_list = list(range(opt.c_y))
+        vis_list = slice_list[:opt.c_y//self.scale]
+        mask_list = slice_list[opt.c_y//self.scale:]
+        re_list = []
 
-        # while len(vis_list) != 0:
-        #     if len(re_list) % opt.ratio == 0:
-        #         re_list.append(vis_list.pop(0))
-        #     else:
-        #         re_list.append(mask_list.pop(0))
-        # ## add padding to the end of the sequence
-        # if len(mask_list) > 0:
-        #     re_list.extend(mask_list)
-        # self.slice_sequence = torch.tensor(re_list)        
+        while len(vis_list) != 0:
+            if len(re_list) % opt.ratio == 0:
+                re_list.append(vis_list.pop(0))
+            else:
+                re_list.append(mask_list.pop(0))
+        ## add padding to the end of the sequence
+        if len(mask_list) > 0:
+            re_list.extend(mask_list)
+        self.slice_sequence_a = torch.tensor(re_list)
+
+        ## x direction
+        self.b_path_mask = torch.nn.Parameter(torch.zeros(self.out_z, self.c, opt.c_y, opt.c_x)).cuda()
+        slice_list = list(range(opt.c_x))
+        vis_list = slice_list[:opt.c_x//self.scale]
+        mask_list = slice_list[opt.c_x//self.scale:]
+        re_list = []
+
+        while len(vis_list) != 0:
+            if len(re_list) % opt.ratio == 0:
+                re_list.append(vis_list.pop(0))
+            else:
+                re_list.append(mask_list.pop(0))
+        ## add padding to the end of the sequence
+        if len(mask_list) > 0:
+            re_list.extend(mask_list)
+        self.slice_sequence_b = torch.tensor(re_list)
+
+        ## update Image size to super-resolution size
+        img_size = opt.c_y
+        ## end region 
 
         # region
         ######################## MAE Decoder ########################
@@ -177,9 +200,14 @@ class TVSRN(nn.Module):
         x_Eout = self.Encoder.forward_features(x_SF) + x_SF
 
         # Token
-        x_patch_vis = x_Eout.reshape(-1, self.c, opt.c_y, opt.c_x)
+        x_patch_vis = x_Eout.reshape(-1, self.c, opt.c_y//self.scale, opt.c_x//self.scale)
         x_patch_embed = torch.cat([x_patch_vis, self.x_patch_mask], dim=0)
         x_patch_embed = x_patch_embed[self.slice_sequence]
+        ## add token in xy-direction
+        x_patch_embed = torch.cat([x_patch_embed, self.a_path_mask], dim=2)
+        x_patch_embed = x_patch_embed[:, :, self.slice_sequence_a]
+        x_patch_embed = torch.cat([x_patch_embed, self.b_path_mask], dim=3)
+        x_patch_embed = x_patch_embed[:, :, :, self.slice_sequence_b]
 
         if opt.T_pos:
             trans_input = x_patch_embed + self.positions_z
