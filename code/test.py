@@ -25,7 +25,7 @@ resource.setrlimit(resource.RLIMIT_NOFILE, (2000, rlimit[1]))
 def test(**kwargs):
     # stage 1
     kwargs, data_info_dict = non_model.read_kwargs(kwargs)
-    opt.load_config('../config/default.txt')
+    opt.load_config(kwargs['config_path'])
     config_dict = opt._spec(kwargs)
 
     # stage 2
@@ -36,7 +36,8 @@ def test(**kwargs):
 
     # stage 3
     save_model_list = sorted(os.listdir(save_model_folder))
-    use_model = [each for each in save_model_list if each.endswith('pkl')][0]
+    use_model = [each for each in save_model_list if each.endswith('pkl')][-1]
+    print('use model:', use_model)
     use_model_path = save_model_folder + use_model
     config_dict = non_model.update_kwargs(use_model_path, kwargs)
     opt._spec(config_dict)
@@ -96,8 +97,10 @@ def test(**kwargs):
 
     with torch.no_grad():
         pid_list = []
-        psnr_list = []
-        ssim_list = []
+        traning_psnr_list = []
+        testing_psnr_list = []
+        training_ssim_list = []
+        testing_ssim_list = []
 
         for i, return_list in tqdm(enumerate(test_batch)):
             case_name, x, y, pos_list = return_list
@@ -123,7 +126,11 @@ def test(**kwargs):
                 y_for_psnr = tmp_y_pre.data.squeeze().cpu().numpy()
 
                 D = y_for_psnr.shape[0]
-                pos_z_s = 5 * tmp_pos_z + 3
+                # pos_z_s = 5 * tmp_pos_z + 3
+                # pos_y_s = tmp_pos_y
+                # pos_x_s = tmp_pos_x
+                front_padding = opt.scale // 2 + opt.scale % 2
+                pos_z_s = opt.scale * tmp_pos_z + front_padding
                 pos_y_s = tmp_pos_y
                 pos_x_s = tmp_pos_x
 
@@ -131,29 +138,61 @@ def test(**kwargs):
                       opt.vc_y, pos_x_s:pos_x_s+opt.vc_x] = y_for_psnr
 
             del tmp_y_pre, im
+        
+            front_padding = opt.scale // 2 + opt.scale % 2
+            back_padding = opt.scale // 2 + 1
+            y_pre = y_pre[front_padding:-back_padding]
+            y = y[front_padding:-back_padding]
+            
+            # y_pre = y_pre[5:-5]
+            # y = y[5:-5]
 
-            y_pre = y_pre[5:-5]
-            y = y[5:-5]
+            n = y_pre.shape[0]
+            training_index = np.arange(opt.scale - front_padding, n, opt.scale)
+            testing_index = np.setdiff1d(np.arange(n), training_index)
 
             save_name_pre = save_output_folder + '%s_pre.nii.gz' % case_name
             output_pre = sitk.GetImageFromArray(y_pre)
             sitk.WriteImage(output_pre, save_name_pre)
 
-            psnr = non_model.cal_psnr(y_pre, y)
-            psnr_list.append(psnr)
+            training_psnr = non_model.cal_psnr(y_pre[training_index], y[training_index])
+            testing_psnr = non_model.cal_psnr(y_pre[testing_index], y[testing_index])
+            traning_psnr_list.append(training_psnr)
+            testing_psnr_list.append(testing_psnr)
 
-            pid_ssim_list = []
+            print('pid:', case_name)
+            print('training psnr:', training_psnr)
+            print('testing psnr:', testing_psnr)
+
+            # pid_ssim_list = []
+            pid_training_ssim_list = []
+            pid_testing_ssim_list = []
             for z_idx, z_layer in enumerate(y_pre):
                 mask_layer = y[z_idx]
 
                 tmp_ssim = non_model.cal_ssim(
                     mask_layer, z_layer, cuda_use=data_gpu)
-                pid_ssim_list.append(tmp_ssim)
+                # pid_ssim_list.append(tmp_ssim)
+                if z_idx in training_index:
+                    pid_training_ssim_list.append(tmp_ssim)
+                else:
+                    pid_testing_ssim_list.append(tmp_ssim)
 
-            ssim_list.append(np.mean(pid_ssim_list))
+            training_ssim_list.append(np.mean(pid_training_ssim_list))
+            testing_ssim_list.append(np.mean(pid_testing_ssim_list))
+            
+            print('training ssim:', np.mean(pid_training_ssim_list))
+            print('testing ssim:', np.mean(pid_testing_ssim_list))
 
-        print(np.mean(psnr_list))
-        print(np.mean(ssim_list))
+        # print(np.mean(psnr_list))
+        # print(np.mean(ssim_list))
+        print('training psnr:', np.mean(traning_psnr_list))
+        print('testing psnr:', np.mean(testing_psnr_list))
+
+
+        with open(save_output_folder + f'{use_model}.txt', 'w') as f:
+            for i, j, k, l, m in zip(pid_list, traning_psnr_list, testing_psnr_list, training_ssim_list, testing_ssim_list):
+                f.write('%s, training psnr:%.4f, testing psnr:%.4f, training ssim:%.4f, testing ssim:%.4f\n' % (i, j, k, l, m))
 
 
 if __name__ == '__main__':

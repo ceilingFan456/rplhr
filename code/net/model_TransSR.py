@@ -31,6 +31,7 @@ class TVSRN(nn.Module):
 
         ####################### Global config #######################
         img_size = opt.c_y
+        # img_size = (opt.c_x, opt.c_y)
         mlp_ratio = opt.T_mlp
         self.scale = opt.scale
 
@@ -86,6 +87,24 @@ class TVSRN(nn.Module):
             re_list.extend(mask_list)
         self.slice_sequence = torch.tensor(re_list)
         # endregion
+
+        ## increase the token to 3D for the decoder
+        ## y direction
+        # self.a_path_mask = torch.nn.Parameter(torch.zeros(self.out_z, self.c, opt.c_y*self.scale, opt.c_x)).cuda()
+        # slice_list = list(range(self.scale*opt.c_y))
+        # vis_list = slice_list[:opt.c_z]
+        # mask_list = slice_list[opt.c_z:]
+        # re_list = []
+
+        # while len(vis_list) != 0:
+        #     if len(re_list) % opt.ratio == 0:
+        #         re_list.append(vis_list.pop(0))
+        #     else:
+        #         re_list.append(mask_list.pop(0))
+        # ## add padding to the end of the sequence
+        # if len(mask_list) > 0:
+        #     re_list.extend(mask_list)
+        # self.slice_sequence = torch.tensor(re_list)        
 
         # region
         ######################## MAE Decoder ########################

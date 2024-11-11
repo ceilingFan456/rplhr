@@ -88,7 +88,7 @@ def get_val_img(img_path, case_name, scale):
 
     return crop_img, pos_list, tmp_mask
 
-def get_test_img(img_path, case_name):
+def get_test_img(img_path, case_name, scale):
     case_mask_path = img_path + 'test/1mm/' + case_name + '.nii.gz'
     tmp_mask = sitk.GetArrayFromImage(sitk.ReadImage(case_mask_path))
 
